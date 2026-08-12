@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NathanBot</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <!-- OVERLAY MOBILE -->
+    <div
+        class="modal-overlay"
+        id="modalOverlay"
+        onclick="toggleSidebar()">
+    </div>
+
+
+    <!-- SIDEBAR -->
+    <div
+        class="sidebar"
+        id="sidebarMenu">
+
+        <div class="sidebar-header-container">
+
+            <button
+                class="btn-new-chat"
+                onclick="startNewChat()">
+                + Nova Conversa
+            </button>
+
+            <button
+                class="btn-delete-history"
+                onclick="clearCurrentHistory()">
+                Apagar Conversa Atual
+            </button>
+
+        </div>
+
+        <div
+            class="sidebar-content"
+            id="historyContent">
+        </div>
+
+    </div>
+
+
+    <!-- CHAT PRINCIPAL -->
+    <div class="main-chat">
+
+        <div class="chat-header">
+
+            <button
+                class="btn-menu-mobile"
+                onclick="toggleSidebar()">
+                ☰
+            </button>
+
+
+            <div>
+
+                <h3>NathanBot</h3>
+
+                <span id="chat-status">
+                    Nova sessão
+                </span>
+
+            </div>
+
+
+            <!-- USUÁRIO -->
+            <div class="user-area">
+
+    <button
+        class="user-avatar"
+        id="userAvatar"
+        onclick="toggleUserMenu()"
+        title="Minha conta">
+        U
+    </button>
+
+    <div
+        class="user-menu"
+        id="userMenu">
+
+        <div class="user-menu-info">
+
+            <strong id="userName">
+                Usuário
+            </strong>
+
+            <span id="userEmail">
+                email@email.com
+            </span>
+
+        </div>
+
+        <div class="user-menu-divider"></div>
+
+        <button
+            class="logout-button"
+            onclick="logout()">
+
+            <span>↪</span>
+            Sair da conta
+
+        </button>
+
+    </div>
+
+</div>
+
+        </div>
+
+
+        
+
+        <!-- MENSAGENS -->
+
+        <div
+            class="chat-messages"
+            id="chatbox">
+        </div>
+
+<div
+            class="typing-indicator"
+            id="typingBubble"
+            style="display:none;">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </div>
+        <!-- INPUT -->
+
+        <!-- INPUT DO CHAT -->
+<div class="chat-input-area">
+
+    <!-- PRÉVIA DA IMAGEM -->
+    <div
+        id="imagePreview"
+        class="image-preview">
+    </div>
+
+    <div class="chat-input-row">
+
+        <!-- BOTÃO PARA ESCOLHER IMAGEM -->
+       <label
+    for="imageInput"
+    class="image-button"
+    title="Enviar imagem">
+
+    <svg
+        width="21"
+        height="21"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Moldura da imagem -->
+        <rect
+            x="3"
+            y="4"
+            width="18"
+            height="16"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="1.7"
+        />
+
+        <!-- Sol -->
+        <circle
+            cx="8.5"
+            cy="9"
+            r="1.5"
+            fill="currentColor"
+        />
+
+        <!-- Montanha -->
+        <path
+            d="M4.5 17L9.5 11.5L13 15L15.5 12.5L19.5 17"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        />
+
+    </svg>
+
+</label>
+
+        <input
+            type="file"
+            id="imageInput"
+            accept="image/*"
+            hidden
+        >
+
+        <!-- CAMPO DE TEXTO -->
+        <input
+            type="text"
+            id="userInput"
+            placeholder="Digite sua mensagem aqui..."
+            autocomplete="off"
+            onkeydown="if(event.key === 'Enter') sendMessage()"
+        >
+
+        <!-- ENVIAR -->
+        <button onclick="sendMessage()">
+            Enviar
+        </button>
+
+    </div>
+
+</div>
+    </div>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
