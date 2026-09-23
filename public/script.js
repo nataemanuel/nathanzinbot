@@ -1,3 +1,4 @@
+
 // ==========================================
 // VERIFICAR LOGIN
 // ==========================================
@@ -49,15 +50,9 @@ if (userData) {
 }
 
 
-// ==========================================
-// INICIAIS DO USUÁRIO
-// ==========================================
-
 function getInitials(name) {
 
-    if (!name) {
-        return "U";
-    }
+    if (!name) return "U";
 
     const names =
         name.trim().split(/\s+/);
@@ -98,7 +93,7 @@ function toggleUserMenu() {
 
 document.addEventListener(
     "click",
-    function (event) {
+    function(event) {
 
         const userArea =
             document.querySelector(".user-area");
@@ -132,7 +127,7 @@ let currentSessionId = "";
 // INICIAR PÁGINA
 // ==========================================
 
-window.onload = function () {
+window.onload = function() {
 
     startNewChat();
 
@@ -155,9 +150,7 @@ function startNewChat() {
         document.getElementById("chatbox");
 
 
-    if (!chatbox) {
-        return;
-    }
+    if (!chatbox) return;
 
 
     chatbox.innerHTML = "";
@@ -174,11 +167,14 @@ function startNewChat() {
     welcome.style.textAlign =
         "center";
 
+
     welcome.style.color =
         "#80868b";
 
+
     welcome.style.fontSize =
         "0.9rem";
+
 
     welcome.style.marginTop =
         "20px";
@@ -191,19 +187,21 @@ function startNewChat() {
     chatbox.appendChild(welcome);
 
 
-    const chatStatus =
+    const status =
         document.getElementById("chat-status");
 
 
-    if (chatStatus) {
+    if (status) {
 
-        chatStatus.innerText =
+        status.innerText =
             "Conversa Ativa";
 
     }
 
 
     hideTyping();
+
+    removeSelectedFile();
 
 }
 
@@ -214,52 +212,16 @@ function startNewChat() {
 
 function showTyping() {
 
-    const chatbox =
-        document.getElementById("chatbox");
-
-    if (!chatbox) {
-        return;
-    }
-
-    let bubble =
+    const bubble =
         document.getElementById("typingBubble");
 
-    // Se não existir, cria o indicador
-    if (!bubble) {
 
-        bubble =
-            document.createElement("div");
+    if (bubble) {
 
-        bubble.className =
-            "typing-indicator";
-
-        bubble.id =
-            "typingBubble";
-
-        bubble.innerHTML = `
-            <span></span>
-            <span></span>
-            <span></span>
-        `;
-
-        chatbox.appendChild(bubble);
-
-    } else {
-
-        // Coloca o indicador no final
-        // da conversa
-        chatbox.appendChild(bubble);
+        bubble.style.display =
+            "flex";
 
     }
-
-    bubble.style.display =
-        "flex";
-
-
-    // Desce o scroll até o indicador
-
-    chatbox.scrollTop =
-        chatbox.scrollHeight;
 
 }
 
@@ -267,9 +229,7 @@ function showTyping() {
 function hideTyping() {
 
     const bubble =
-        document.getElementById(
-            "typingBubble"
-        );
+        document.getElementById("typingBubble");
 
 
     if (bubble) {
@@ -286,77 +246,127 @@ function hideTyping() {
 // ENVIAR MENSAGEM
 // ==========================================
 
+
+// ==========================================
+// ENVIAR MENSAGEM
+// ==========================================
+
 async function sendMessage() {
+
+    console.log("=================================");
+    console.log("SEND MESSAGE FOI CHAMADO");
+    console.log("=================================");
+
 
     const input =
         document.getElementById("userInput");
 
-    const imageInput =
-        document.getElementById("imageInput");
-
-    const imagePreview =
-        document.getElementById("imagePreview");
-
     const chatbox =
         document.getElementById("chatbox");
 
-
-    if (!input || !chatbox) {
-        return;
-    }
+    const fileInput =
+        document.getElementById("fileInput");
 
 
-    const message =
-        input.value.trim();
+    console.log("input:", input);
+    console.log("fileInput:", fileInput);
 
 
-    const image =
-        imageInput?.files?.[0] || null;
+    if (!input) {
 
-
-    // ======================================
-    // NÃO PERMITIR ENVIO VAZIO
-    // ======================================
-
-    if (!message && !image) {
-        return;
-    }
-
-
-    // ======================================
-    // VERIFICAR TAMANHO DA IMAGEM
-    // ======================================
-
-    if (
-        image &&
-        image.size > 10 * 1024 * 1024
-    ) {
-
-        showError(
-            "A imagem deve ter no máximo 10 MB."
+        console.error(
+            "ERRO: elemento #userInput não encontrado."
         );
 
         return;
+    }
+
+
+    if (!chatbox) {
+
+        console.error(
+            "ERRO: elemento #chatbox não encontrado."
+        );
+
+        return;
+    }
+
+
+    // PEGAR A PERGUNTA
+
+    const pergunta =
+        input.value.trim();
+
+
+    console.log(
+        "PERGUNTA CAPTURADA:",
+        JSON.stringify(pergunta)
+    );
+
+
+    // PEGAR ARQUIVO
+
+    let arquivo = null;
+
+
+    if (
+        fileInput &&
+        fileInput.files &&
+        fileInput.files.length > 0
+    ) {
+
+        arquivo =
+            fileInput.files[0];
 
     }
 
 
-    // ======================================
-    // REMOVER MENSAGEM INICIAL
-    // ======================================
+    console.log(
+        "ARQUIVO:",
+        arquivo
+            ? arquivo.name
+            : "Nenhum arquivo"
+    );
+
+
+    // ================================
+    // VERIFICAR PERGUNTA
+    // ================================
+
+    if (!pergunta) {
+
+        console.log(
+            "A pergunta está vazia."
+        );
+
+        showError(
+            "Digite uma pergunta."
+        );
+
+        return;
+    }
+
+
+    // ================================
+    // REMOVER MENSAGEM DE BOAS-VINDAS
+    // ================================
 
     const welcome =
-        document.getElementById("welcome-msg");
+        document.getElementById(
+            "welcome-msg"
+        );
 
 
     if (welcome) {
+
         welcome.remove();
+
     }
 
 
-    // ======================================
-    // MOSTRAR MENSAGEM DO USUÁRIO
-    // ======================================
+    // ================================
+    // MOSTRAR PERGUNTA DO USUÁRIO
+    // ================================
 
     const userDiv =
         document.createElement("div");
@@ -366,140 +376,188 @@ async function sendMessage() {
         "message user";
 
 
-    let userContent =
-        "<b>Você:</b><br>";
-
-
-    // ======================================
-    // MOSTRAR IMAGEM NO CHAT
-    // ======================================
-
-    if (image) {
-
-        const imageURL =
-            URL.createObjectURL(image);
-
-
-        userContent += `
-            <img
-                src="${imageURL}"
-                class="chat-image"
-                alt="Imagem enviada"
-            >
-        `;
-
-    }
-
-
-    // ======================================
-    // MOSTRAR TEXTO
-    // ======================================
-
-    if (message) {
-
-        userContent +=
-            `<br>${escapeHtml(message)}`;
-
-    }
-
-
     userDiv.innerHTML =
-        userContent;
+        `<b>Você:</b><br>
+        ${escapeHtml(pergunta)}`;
 
 
-    chatbox.appendChild(userDiv);
+    if (arquivo) {
+
+        userDiv.innerHTML +=
+            `<br>
+            <small>
+                📎 ${escapeHtml(arquivo.name)}
+            </small>`;
+
+    }
 
 
-    // ======================================
-    // MOSTRAR DIGITANDO
-    // ======================================
+    chatbox.appendChild(
+        userDiv
+    );
+
+
+    // LIMPAR INPUT
+
+    input.value = "";
+
 
     showTyping();
 
 
     try {
 
-        // ==================================
-        // FORM DATA
-        // ==================================
-
-        const formData =
-            new FormData();
+        let response;
 
 
-        formData.append(
-            "message",
-            message
-        );
+        // ==================================================
+        // PDF / TXT
+        // ==================================================
 
+        if (arquivo) {
 
-        formData.append(
-            "sessionId",
-            currentSessionId
-        );
-
-
-        // ==================================
-        // ADICIONAR IMAGEM
-        // ==================================
-
-        if (image) {
-
-            formData.append(
-                "image",
-                image
+            console.log(
+                "================================="
             );
 
+            console.log(
+                "ENVIANDO DOCUMENTO"
+            );
+
+            console.log(
+                "================================="
+            );
+
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "documento",
+                arquivo
+            );
+
+
+            formData.append(
+                "pergunta",
+                pergunta
+            );
+
+
+            console.log(
+                "Arquivo enviado:",
+                arquivo.name
+            );
+
+
+            console.log(
+                "Pergunta enviada:",
+                pergunta
+            );
+
+
+            response =
+                await fetch(
+                    "/api/perguntar-documento",
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            Authorization:
+                                "Bearer " +
+                                localStorage.getItem(
+                                    "token"
+                                )
+
+                        },
+
+                        body: formData
+
+                    }
+                );
+
         }
 
 
-        // ==================================
-        // LIMPAR INPUT
-        // SOMENTE DEPOIS DO FORMDATA
-        // ==================================
+        // ==================================================
+        // CHAT NORMAL
+        // ==================================================
 
-        input.value = "";
+        else {
+
+            console.log(
+                "Enviando mensagem normal..."
+            );
 
 
-        if (imageInput) {
-            imageInput.value = "";
+            response =
+                await fetch(
+                    "/chat",
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            Authorization:
+                                "Bearer " +
+                                localStorage.getItem(
+                                    "token"
+                                )
+
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                message:
+                                    pergunta,
+
+                                sessionId:
+                                    currentSessionId
+
+                            })
+
+                    }
+                );
+
         }
 
 
-        if (imagePreview) {
-            imagePreview.innerHTML = "";
-        }
+        console.log(
+            "STATUS DO SERVIDOR:",
+            response.status
+        );
 
 
-        // ==================================
-        // ENVIAR PARA SERVIDOR
-        // ==================================
+        // Tentar ler resposta
 
-        const response =
-            await fetch("/chat", {
-
-                method: "POST",
-
-                headers: {
-
-                    "Authorization":
-                        "Bearer " +
-                        localStorage.getItem(
-                            "token"
-                        )
-
-                },
-
-                body: formData
-
-            });
+        const data =
+            await response.json();
 
 
-        // ==================================
-        // TOKEN INVÁLIDO
-        // ==================================
+        console.log(
+            "RESPOSTA DO SERVIDOR:",
+            data
+        );
 
-        if (response.status === 401) {
+
+        hideTyping();
+
+
+        // ================================
+        // TOKEN EXPIRADO
+        // ================================
+
+        if (
+            response.status === 401
+        ) {
 
             logout();
 
@@ -508,48 +566,119 @@ async function sendMessage() {
         }
 
 
-        const data =
-            await response.json();
+        // ==================================================
+        // RESPOSTA DO DOCUMENTO
+        // ==================================================
+
+        if (arquivo) {
+
+            if (
+                response.ok &&
+                data.resposta
+            ) {
+
+                const botDiv =
+                    document.createElement(
+                        "div"
+                    );
 
 
-        hideTyping();
+                botDiv.className =
+                    "message bot";
 
 
-        // ==================================
-        // RESPOSTA DO GEMINI
-        // ==================================
-
-        if (data.reply) {
-
-            const botDiv =
-                document.createElement("div");
+                botDiv.innerHTML =
+                    `<b>NathanBot:</b><br>
+                    ${escapeHtml(
+                        data.resposta
+                    )}`;
 
 
-            botDiv.className =
-                "message bot";
+                chatbox.appendChild(
+                    botDiv
+                );
 
 
-            botDiv.innerHTML =
-                `<b>NathanBot:</b><br>${formatBotResponse(
-                    data.reply
-                )}`;
+                console.log(
+                    "Documento respondido com sucesso."
+                );
 
 
-            chatbox.appendChild(
-                botDiv
-            );
+            } else {
+
+                console.error(
+                    "Erro retornado pelo servidor:",
+                    data
+                );
 
 
-            // Atualizar histórico
-            loadAllChats();
+                showError(
+                    data.erro ||
+                    data.error ||
+                    "Erro ao analisar o documento."
+                );
+
+            }
+
+        }
 
 
-        } else {
+        // ==================================================
+        // RESPOSTA NORMAL
+        // ==================================================
 
-            showError(
-                data.error ||
-                "Erro desconhecido."
-            );
+        else {
+
+            if (
+                response.ok &&
+                data.reply
+            ) {
+
+                const botDiv =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                botDiv.className =
+                    "message bot";
+
+
+                botDiv.innerHTML =
+                    `<b>NathanBot:</b><br>
+                    ${escapeHtml(
+                        data.reply
+                    )}`;
+
+
+                chatbox.appendChild(
+                    botDiv
+                );
+
+
+                loadAllChats();
+
+
+            } else {
+
+                showError(
+                    data.error ||
+                    data.erro ||
+                    "Erro ao gerar resposta."
+                );
+
+            }
+
+        }
+
+
+        // ================================
+        // REMOVER ARQUIVO
+        // ================================
+
+        if (arquivo) {
+
+            removeSelectedFile();
 
         }
 
@@ -557,7 +686,7 @@ async function sendMessage() {
     } catch (error) {
 
         console.error(
-            "Erro no envio:",
+            "ERRO AO ENVIAR:",
             error
         );
 
@@ -566,7 +695,7 @@ async function sendMessage() {
 
 
         showError(
-            "Conexão falhou."
+            "Não foi possível conectar ao servidor."
         );
 
     }
@@ -578,173 +707,48 @@ async function sendMessage() {
 }
 
 
-// ==========================================
-// PRÉ-VISUALIZAÇÃO DA IMAGEM
-// ==========================================
-
-function previewImage() {
-
-    const imageInput =
-        document.getElementById("imageInput");
-
-    const imagePreview =
-        document.getElementById("imagePreview");
-
-
-    if (
-        !imageInput ||
-        !imagePreview
-    ) {
-
-        return;
-
-    }
-
-
-    const image =
-        imageInput.files[0];
-
-
-    // Nenhuma imagem
-    if (!image) {
-
-        imagePreview.innerHTML =
-            "";
-
-        return;
-
-    }
-
-
-    // ======================================
-    // VERIFICAR TIPO
-    // ======================================
-
-    if (
-        !image.type.startsWith("image/")
-    ) {
-
-        imagePreview.innerHTML =
-            "<p>Selecione uma imagem válida.</p>";
-
-        imageInput.value =
-            "";
-
-        return;
-
-    }
-
-
-    // ======================================
-    // VERIFICAR TAMANHO
-    // ======================================
-
-    if (
-        image.size > 10 * 1024 * 1024
-    ) {
-
-        imagePreview.innerHTML =
-            "<p>A imagem deve ter no máximo 10 MB.</p>";
-
-        imageInput.value =
-            "";
-
-        return;
-
-    }
-
-
-    // ======================================
-    // CRIAR URL DA IMAGEM
-    // ======================================
-
-    const imageURL =
-        URL.createObjectURL(image);
-
-
-    // ======================================
-    // MOSTRAR PREVIEW
-    // ======================================
-
-    imagePreview.innerHTML = `
-        <div class="preview-container">
-
-            <img
-                src="${imageURL}"
-                class="preview-image"
-                alt="Pré-visualização"
-            >
-
-            <button
-                type="button"
-                class="remove-image"
-                onclick="removeImage()"
-            >
-                ×
-            </button>
-
-        </div>
-    `;
-
-}
 
 
 // ==========================================
-// REMOVER IMAGEM
+// REMOVER ARQUIVO SELECIONADO
 // ==========================================
 
-function removeImage() {
+function removeSelectedFile() {
 
-    const imageInput =
-        document.getElementById("imageInput");
-
-    const imagePreview =
-        document.getElementById("imagePreview");
+    const fileInput =
+        document.getElementById("fileInput");
 
 
-    if (imageInput) {
+    const selectedFile =
+        document.getElementById("selectedFile");
 
-        imageInput.value =
-            "";
+
+    const selectedFileName =
+        document.getElementById("selectedFileName");
+
+
+    if (fileInput) {
+
+        fileInput.value = "";
 
     }
 
 
-    if (imagePreview) {
+    if (selectedFileName) {
 
-        imagePreview.innerHTML =
-            "";
+        selectedFileName.textContent = "";
+
+    }
+
+
+    if (selectedFile) {
+
+        selectedFile.style.display =
+            "none";
 
     }
 
 }
-
-
-// ==========================================
-// ATIVAR PREVIEW DO INPUT
-// ==========================================
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        const imageInput =
-            document.getElementById(
-                "imageInput"
-            );
-
-
-        if (imageInput) {
-
-            imageInput.addEventListener(
-                "change",
-                previewImage
-            );
-
-        }
-
-    }
-);
 
 
 // ==========================================
@@ -767,76 +771,16 @@ function escapeHtml(text) {
 
 
 // ==========================================
-// FORMATAR RESPOSTA DO GEMINI
-// ==========================================
-
-function formatBotResponse(text) {
-
-    if (!text) {
-        return "";
-    }
-
-
-    // Protege o HTML
-    let formatted =
-        escapeHtml(text);
-
-
-    // ======================================
-    // NEGRITO
-    // **texto**
-    // ======================================
-
-    formatted =
-        formatted.replace(
-            /\*\*(.*?)\*\*/g,
-            "<strong>$1</strong>"
-        );
-
-
-    // ======================================
-    // ITÁLICO
-    // *texto*
-    // ======================================
-
-    formatted =
-        formatted.replace(
-            /(?<!\*)\*([^*]+)\*(?!\*)/g,
-            "<em>$1</em>"
-        );
-
-
-    // ======================================
-    // QUEBRAS DE LINHA
-    // ======================================
-
-    formatted =
-        formatted.replace(
-            /\n/g,
-            "<br>"
-        );
-
-
-    return formatted;
-
-}
-
-
-// ==========================================
 // ERRO
 // ==========================================
 
 function showError(text) {
 
     const chatbox =
-        document.getElementById(
-            "chatbox"
-        );
+        document.getElementById("chatbox");
 
 
-    if (!chatbox) {
-        return;
-    }
+    if (!chatbox) return;
 
 
     const error =
@@ -874,9 +818,7 @@ async function loadAllChats() {
         );
 
 
-    if (!historyContent) {
-        return;
-    }
+    if (!historyContent) return;
 
 
     try {
@@ -993,9 +935,7 @@ async function loadSpecificChat(
         );
 
 
-    if (!chatbox) {
-        return;
-    }
+    if (!chatbox) return;
 
 
     hideTyping();
@@ -1043,18 +983,6 @@ async function loadSpecificChat(
             "";
 
 
-        if (
-            !Array.isArray(mensagens)
-        ) {
-
-            chatbox.innerHTML =
-                "<p>Erro ao carregar conversa.</p>";
-
-            return;
-
-        }
-
-
         mensagens.forEach(
             msg => {
 
@@ -1076,52 +1004,9 @@ async function loadSpecificChat(
                         : "Gemini";
 
 
-                let conteudo =
-                    `<b>${nome}:</b><br>`;
-
-
-                // ==================================
-                // MOSTRAR IMAGEM
-                // ==================================
-
-                if (
-                    msg.image &&
-                    msg.image.data &&
-                    msg.image.mimeType
-                ) {
-
-                    const imageSrc =
-                        `data:${msg.image.mimeType};base64,${msg.image.data}`;
-
-
-                    conteudo += `
-                        <img
-                            src="${imageSrc}"
-                            class="chat-image"
-                            alt="Imagem enviada"
-                        >
-                    `;
-
-                }
-
-
-                // ==================================
-                // MOSTRAR TEXTO
-                // ==================================
-
-                if (msg.text) {
-
-                    conteudo +=
-                        `<br>${msg.role === "user"
-                            ? escapeHtml(msg.text)
-                            : formatBotResponse(msg.text)
-                        }`;
-
-                }
-
-
                 div.innerHTML =
-                    conteudo;
+                    `<b>${nome}:</b><br>
+                    ${escapeHtml(msg.text)}`;
 
 
                 chatbox.appendChild(
@@ -1138,10 +1023,7 @@ async function loadSpecificChat(
 
     } catch (error) {
 
-        console.error(
-            "Erro ao carregar histórico:",
-            error
-        );
+        console.error(error);
 
 
         chatbox.innerHTML =
@@ -1159,7 +1041,9 @@ async function loadSpecificChat(
 async function clearCurrentHistory() {
 
     if (!currentSessionId) {
+
         return;
+
     }
 
 
@@ -1213,10 +1097,7 @@ async function clearCurrentHistory() {
 
     } catch (error) {
 
-        console.error(
-            "Erro ao apagar conversa:",
-            error
-        );
+        console.error(error);
 
 
         showError(
@@ -1291,3 +1172,101 @@ function toggleSidebar() {
     }
 
 }
+
+// ==========================================
+// TESTE DO BOTÃO
+// ==========================================
+
+console.log("=================================");
+console.log("SCRIPT.JS CARREGADO");
+console.log("=================================");
+
+
+// ==========================================
+// MONITORAR O INPUT
+// ==========================================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const input =
+        document.getElementById("userInput");
+
+    const fileInput =
+        document.getElementById("fileInput");
+
+
+    console.log(
+        "userInput encontrado:",
+        !!input
+    );
+
+
+    console.log(
+        "fileInput encontrado:",
+        !!fileInput
+    );
+
+
+    if (input) {
+
+        input.addEventListener(
+            "input",
+            function () {
+
+                console.log(
+                    "Texto digitado:",
+                    this.value
+                );
+
+            }
+        );
+
+    }
+
+
+    if (fileInput) {
+
+        fileInput.addEventListener(
+            "change",
+            function () {
+
+                console.log(
+                    "Arquivo selecionado:",
+                    this.files[0]
+                        ? this.files[0].name
+                        : "nenhum"
+                );
+
+
+                const selectedFile =
+                    document.getElementById(
+                        "selectedFile"
+                    );
+
+
+                const selectedFileName =
+                    document.getElementById(
+                        "selectedFileName"
+                    );
+
+
+                if (
+                    this.files.length > 0
+                ) {
+
+                    selectedFileName.textContent =
+                        "📄 " +
+                        this.files[0].name;
+
+
+                    selectedFile.style.display =
+                        "flex";
+
+                }
+
+            }
+        );
+
+    }
+
+});
