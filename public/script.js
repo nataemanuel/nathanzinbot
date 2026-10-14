@@ -10,6 +10,68 @@ if (!token) {
 }
 
 
+
+let socket = null;
+let isPublicRoom = false;
+
+if (token && typeof io !== "undefined") {
+    socket = io({
+        auth: {
+            token: token
+        }
+    });
+
+    socket.on("connect", () => {
+        console.log("Conectado à sala em tempo real.");
+    });
+
+    socket.on("connect_error", (error) => {
+        console.error(
+            "Erro na conexão Socket.IO:",
+            error.message
+        );
+    });
+
+    socket.on("mensagemRecebida", (dados) => {
+        if (!isPublicRoom) return;
+
+        const chatbox = document.getElementById("chatbox");
+        if (!chatbox) return;
+
+        const welcome = document.getElementById("welcome-msg");
+        if (welcome) welcome.remove();
+
+        const div = document.createElement("div");
+
+        div.className =
+            dados.role === "assistant"
+                ? "message bot"
+                : "message user";
+
+        const nome = document.createElement("b");
+        nome.textContent = (dados.userName || "Usuário") + ":";
+
+        const texto = document.createElement("div");
+        texto.textContent = dados.text || "";
+
+        div.appendChild(nome);
+        div.appendChild(document.createElement("br"));
+        div.appendChild(texto);
+
+        chatbox.appendChild(div);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        hideTyping();
+    });
+
+    socket.on("erroChat", (dados) => {
+        showError(
+            dados.message || "Erro na sala pública."
+        );
+    });
+}
+
+
 // ==========================================
 // DADOS DO USUÁRIO
 // ==========================================
@@ -241,6 +303,66 @@ function hideTyping() {
 
 }
 
+function togglePublicRoom() {
+    const button = document.getElementById("togglePublicRoom");
+    const status = document.getElementById("chat-status");
+    const chatbox = document.getElementById("chatbox");
+    const fileInput = document.getElementById("fileInput");
+
+    if (!socket || !socket.connected) {
+        showError(
+            "Não foi possível conectar à sala. Verifique sua conexão e tente novamente."
+        );
+        return;
+    }
+
+    isPublicRoom = !isPublicRoom;
+
+    if (isPublicRoom) {
+        currentSessionId = "";
+
+        chatbox.innerHTML = "";
+
+        if (button) {
+            button.textContent = "Voltar ao chat individual";
+        }
+
+        if (status) {
+            status.textContent = "Sala pública • Tempo real";
+        }
+
+        const aviso = document.createElement("p");
+        aviso.id = "welcome-msg";
+        aviso.style.textAlign = "center";
+        aviso.style.color = "#80868b";
+        aviso.textContent =
+            "Você entrou na sala pública. Suas mensagens serão visíveis aos participantes.";
+        chatbox.appendChild(aviso);
+
+        if (fileInput) fileInput.disabled = true;
+
+        const input = document.getElementById("userInput");
+        if (input) {
+            input.placeholder = "Mensagem para a sala... Use @gemini para chamar o moderador";
+        }
+
+    } else {
+        if (button) {
+            button.textContent = "Entrar na sala pública";
+        }
+
+        if (fileInput) fileInput.disabled = false;
+
+        const input = document.getElementById("userInput");
+        if (input) {
+            input.placeholder = "Digite sua pergunta aqui...";
+        }
+
+        startNewChat();
+        loadAllChats();
+    }
+}
+
 
 // ==========================================
 // ENVIAR MENSAGEM
@@ -332,6 +454,36 @@ async function sendMessage() {
     // ================================
     // VERIFICAR PERGUNTA
     // ================================
+
+if (isPublicRoom) {
+    if (!pergunta) {
+        showError("Digite uma mensagem.");
+        return;
+    }
+
+    if (arquivo) {
+        showError(
+            "O envio de documentos está disponível no chat individual."
+        );
+        return;
+    }
+
+    if (!socket || !socket.connected) {
+        showError(
+            "Conexão perdida. Aguarde e tente novamente."
+        );
+        return;
+    }
+
+    socket.emit("novaMensagem", {
+        text: pergunta
+    });
+
+    input.value = "";
+    input.focus();
+
+    return;
+}
 
     if (!pergunta) {
 
