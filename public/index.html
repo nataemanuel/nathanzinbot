@@ -1,297 +1,123 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>NathanBot</title>
-
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar | NathanBot</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      padding: 35px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 25px 70px rgba(0,0,0,.35);
+      backdrop-filter: blur(15px);
+    }
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: #fff;
+      color: #111827;
+      font-size: 28px;
+      font-weight: 800;
+    }
+    h1 { text-align: center; margin: 0 0 8px; }
+    .subtitle { text-align: center; color: #cbd5e1; margin-bottom: 28px; }
+    label { display: block; margin: 14px 0 7px; color: #e2e8f0; }
+    input {
+      width: 100%; padding: 14px 15px; border-radius: 12px;
+      border: 1px solid #475569; background: #0f172a; color: #fff; outline: none;
+    }
+    input:focus { border-color: #94a3b8; }
+    button {
+      width: 100%; margin-top: 22px; padding: 14px; border: 0;
+      border-radius: 12px; background: #fff; color: #0f172a;
+      font-weight: 700; cursor: pointer; font-size: 15px;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .message { min-height: 22px; margin-top: 15px; text-align: center; font-size: 14px; }
+    .link { text-align: center; margin-top: 22px; color: #cbd5e1; }
+    a { color: #fff; font-weight: 700; }
+  </style>
 </head>
-
 <body>
-
-<div class="chat-container">
-
-    <!-- ==========================================
-         OVERLAY MOBILE
-    =========================================== -->
-
-    <div
-        class="modal-overlay"
-        id="modalOverlay"
-        onclick="toggleSidebar()">
-    </div>
-
-
-    <!-- ==========================================
-         SIDEBAR
-    =========================================== -->
-
-    <div
-        class="sidebar"
-        id="sidebarMenu">
-
-        <div class="sidebar-header-container">
-
-            <button
-                type="button"
-                class="btn-new-chat"
-                onclick="startNewChat()">
-                + Nova Conversa
-            </button>
-
-
-            <button
-                type="button"
-                class="btn-delete-history"
-                onclick="clearCurrentHistory()">
-                Apagar Conversa Atual
-            </button>
-
-        </div>
-
-
-        <div
-            class="sidebar-content"
-            id="historyContent">
-        </div>
-
-    </div>
-
-
-    <!-- ==========================================
-         CHAT PRINCIPAL
-    =========================================== -->
-
-    <div class="main-chat">
-
-
-        <!-- ======================================
-             CABEÇALHO
-        ======================================= -->
-
-        <div class="chat-header">
-
-
-            <!-- MENU MOBILE -->
-
-            <button
-                type="button"
-                class="btn-menu-mobile"
-                onclick="toggleSidebar()">
-                ☰
-            </button>
-
-
-            <!-- TÍTULO -->
-
-            <div>
-
-                <h3>NathanBot</h3>
-
-                <span id="chat-status">
-                    Nova sessão
-                </span>
-
-            </div>
-
-
-            <!-- ==================================
-                 USUÁRIO
-            =================================== -->
-
-            <div class="user-area">
-
-
-                <button
-                    type="button"
-                    class="user-avatar"
-                    id="userAvatar"
-                    onclick="toggleUserMenu()"
-                    title="Minha conta">
-                    U
-                </button>
-
-
-                <div
-                    class="user-menu"
-                    id="userMenu">
-
-
-                    <div class="user-menu-info">
-
-                        <strong id="userName">
-                            Usuário
-                        </strong>
-
-
-                        <span id="userEmail">
-                            email@email.com
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="user-menu-divider">
-                    </div>
-
-
-                    <button
-                        type="button"
-                        class="logout-button"
-                        onclick="logout()">
-
-                        <span>↪</span>
-
-                        Sair da conta
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- ==========================================
-             INDICADOR DIGITANDO
-        =========================================== -->
-
-        <div
-            class="typing-indicator"
-            id="typingBubble"
-            style="display: none;">
-
-            <span></span>
-            <span></span>
-            <span></span>
-
-        </div>
-
-
-        <!-- ==========================================
-             MENSAGENS
-        =========================================== -->
-
-        <div
-            class="chat-messages"
-            id="chatbox">
-        </div>
-
-
-        <!-- ==========================================
-             ARQUIVO SELECIONADO
-        =========================================== -->
-
-        <div
-            id="selectedFile"
-            class="selected-file"
-            style="display: none;">
-
-            <span id="selectedFileName"></span>
-
-
-            <button
-                type="button"
-                onclick="removeSelectedFile()"
-                title="Remover arquivo">
-
-                ✕
-
-            </button>
-
-        </div>
-
-
-        <!-- ==========================================
-             ÁREA DE INPUT
-        =========================================== -->
-
-        <div class="chat-input-area">
-
-
-            <!-- ======================================
-                 BOTÃO ANEXAR
-            ======================================= -->
-
-  <label
-    for="fileInput"
-    class="file-button"
-    title="Anexar documento">
-
-    <svg
-        width="21"
-        height="21"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg">
-
-        <path
-            d="M21.44 11.05L12.25 20.24C10.17 22.32 6.79 22.32 4.71 20.24C2.63 18.16 2.63 14.78 4.71 12.7L13.9 3.51C15.29 2.12 17.54 2.12 18.93 3.51C20.32 4.9 20.32 7.15 18.93 8.54L9.74 17.73C9.05 18.42 7.93 18.42 7.24 17.73C6.55 17.04 6.55 15.92 7.24 15.23L15.72 6.75"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"/>
-
-    </svg>
-
-</label>
-
-
-            <!-- ======================================
-                 INPUT DO ARQUIVO
-            ======================================= -->
-
-            <input
-                type="file"
-                id="fileInput"
-                accept=".pdf,.txt,application/pdf,text/plain"
-                style="display: none;"
-            >
-
-
-            <!-- ======================================
-                 CAMPO DA PERGUNTA
-            ======================================= -->
-
-            <input
-                type="text"
-                id="userInput"
-                placeholder="Digite sua pergunta aqui..."
-                autocomplete="off"
-            >
-
-
-            <!-- ======================================
-                 BOTÃO ENVIAR
-            ======================================= -->
-
-            <button
-                type="button"
-                id="sendButton"
-                onclick="sendMessage()">
-
-                Enviar
-
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- ==========================================
-     JAVASCRIPT
-=========================================== -->
-
-<script src="/script.js"></script>
-
+  <main class="card">
+    <div class="logo">N</div>
+    <h1>Bem-vindo ao NathanBot</h1>
+    <div class="subtitle">Entre na sua conta para continuar</div>
+
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" autocomplete="email" required placeholder="seu@email.com">
+
+      <label for="password">Senha</label>
+      <input id="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
+
+      <button id="loginButton" type="submit">Entrar</button>
+      <div class="message" id="message"></div>
+    </form>
+
+    <div class="link">Ainda não possui conta? <a href="/cadastro.html">Criar conta</a></div>
+  </main>
+
+  <script>
+    if (localStorage.getItem("token")) {
+      window.location.href = "/";
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const button = document.getElementById("loginButton");
+      const message = document.getElementById("message");
+
+      button.disabled = true;
+      message.textContent = "Entrando...";
+
+      try {
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Não foi possível entrar");
+        }
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("sessionId", crypto.randomUUID());
+
+        window.location.href = "/";
+      } catch (error) {
+        message.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+  </script>
 </body>
-
 </html>
