@@ -1,4 +1,6 @@
 require("dotenv").config();
+const dns = require('node:dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -52,13 +54,17 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const tiposPermitidos = [
       "application/pdf",
-      "text/plain"
+      "text/plain",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif"
     ];
 
     if (tiposPermitidos.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Apenas arquivos PDF ou TXT são permitidos."));
+      cb(new Error("Formato não permitido. Envie PDF, TXT, JPG, PNG, WebP ou GIF."));
     }
   }
 });
@@ -458,7 +464,7 @@ app.post("/chat", autenticarToken, async (req, res) => {
 });
 
 // ==========================================
-// CHAT COM PDF / TXT
+// CHAT COM IMAGENS, PDF E TXT
 // ==========================================
 
 app.post(
@@ -467,77 +473,88 @@ app.post(
   upload.single("documento"),
   async (req, res) => {
     try {
-      // Verifica se um documento foi enviado
       if (!req.file) {
         return res.status(400).json({
-          erro: "Nenhum documento foi enviado."
+          erro: "Selecione uma foto ou um arquivo."
         });
       }
 
-      // Verifica a pergunta
-      const pergunta = req.body.pergunta;
+      const pergunta = typeof req.body.pergunta === "string"
+        ? req.body.pergunta.trim()
+        : "";
 
-      if (
-        typeof pergunta !== "string" ||
-        !pergunta.trim()
-      ) {
-        return res.status(400).json({
-          erro: "Digite uma pergunta."
-        });
-      }
+      const arquivo = req.file;
+      const tipo = arquivo.mimetype;
+      const ehImagem = tipo.startsWith("image/");
+      const ehPDF = tipo === "application/pdf";
+      const ehTXT = tipo === "text/plain";
 
-      let textoDocumento = "";
+      let prompt;
+      let contents;
 
-      // Extrai o texto do PDF
-      if (req.file.mimetype === "application/pdf") {
-        const resultado = await pdfParse(req.file.buffer);
-        textoDocumento = resultado.text;
-      }
+      if (ehImagem) {
+        prompt = `Você é o NathanBot, um assistente útil, cuidadoso e educado.
+` +
+          `Analise a imagem enviada e responda em português brasileiro.
+` +
+          `Não invente detalhes que não estejam visíveis. Se algo não estiver claro, diga isso.
 
-      // Lê o conteúdo do TXT
-      else if (req.file.mimetype === "text/plain") {
-        textoDocumento = req.file.buffer.toString("utf-8");
-      }
+` +
+          (pergunta || "Descreva a imagem e explique o que é possível identificar nela.");
 
-      // Recusa outros formatos
-      else {
-        return res.status(400).json({
-          erro: "Envie apenas arquivos PDF ou TXT."
-        });
-      }
+        contents = [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: tipo,
+                data: arquivo.buffer.toString("base64")
+              }
+            }
+          ]
+        }];
+      } else if (ehPDF || ehTXT) {
+        let textoDocumento = "";
 
-      // Verifica se o documento contém texto
-      if (!textoDocumento || !textoDocumento.trim()) {
-        return res.status(400).json({
-          erro: "Não foi possível encontrar texto no documento."
-        });
-      }
+        if (ehPDF) {
+          const resultado = await pdfParse(arquivo.buffer);
+          textoDocumento = resultado.text || "";
+        } else {
+          textoDocumento = arquivo.buffer.toString("utf-8");
+        }
 
-      // Instruções para análise do documento
-      const prompt = `Você é um analista.
+        if (!textoDocumento.trim()) {
+          return res.status(400).json({
+            erro: "Não foi possível encontrar texto no documento. Se for um PDF digitalizado, envie uma imagem ou um PDF com texto selecionável."
+          });
+        }
 
-REGRA ABSOLUTA:
-Responda à pergunta do usuário única e exclusivamente com base no conteúdo do documento fornecido.
-Não use conhecimentos externos.
-Não invente informações.
-Não faça suposições.
-Não complete informações que não estejam presentes no documento.
+        prompt = `Você é o NathanBot, um assistente útil.
 
-Se a resposta não estiver no documento, responda:
-"Essa informação não está presente no documento."
+` +
+          `Responda em português brasileiro usando exclusivamente o conteúdo do documento. ` +
+          `Não invente informações. Se a resposta não estiver no documento, diga: ` +
+          `"Essa informação não está presente no documento."
 
-DOCUMENTO:
-========================================
+` +
+          `DOCUMENTO:
 ${textoDocumento}
-========================================
 
-PERGUNTA DO USUÁRIO:
-${pergunta.trim()}`;
+` +
+          `PERGUNTA DO USUÁRIO:
+${pergunta || "Faça um resumo do documento."}`;
 
-      // Envia o documento e a pergunta ao Gemini
+        contents = prompt;
+      } else {
+        return res.status(400).json({
+          erro: "Formato não permitido. Envie PDF, TXT, JPG, PNG, WebP ou GIF."
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: prompt
+        contents
       });
 
       const resposta = response.text?.trim();
@@ -548,18 +565,16 @@ ${pergunta.trim()}`;
         });
       }
 
-      return res.json({
-        resposta
-      });
+      return res.json({ resposta });
     } catch (error) {
-      console.error("Erro ao processar documento:", error);
-
+      console.error("Erro ao analisar arquivo:", error);
       return res.status(500).json({
-        erro: "Erro ao processar o documento."
+        erro: "Não foi possível analisar o arquivo. Tente novamente."
       });
     }
   }
 );
+
 // ==========================================
 // HISTÓRICO DE UMA CONVERSA
 // ==========================================
@@ -684,12 +699,9 @@ app.use((error, req, res, next) => {
     }
   }
 
-  if (
-    error?.message ===
-    "Apenas arquivos PDF ou TXT são permitidos."
-  ) {
+  if (error?.message?.startsWith("Formato não permitido.")) {
     return res.status(400).json({
-      erro: "Apenas arquivos PDF ou TXT são permitidos."
+      erro: error.message
     });
   }
 
