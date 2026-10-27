@@ -1,4 +1,3 @@
-
 // ==========================================
 // VERIFICAR LOGIN
 // ==========================================
@@ -52,7 +51,16 @@ if (token && typeof io !== "undefined") {
         nome.textContent = (dados.userName || "Usuário") + ":";
 
         const texto = document.createElement("div");
-        texto.textContent = dados.text || "";
+        
+        // MODIFICAÇÃO: Renderiza Markdown nas mensagens recebidas via socket se for o bot
+        if (dados.role === "assistant") {
+            texto.className = "message-body";
+            texto.innerHTML = typeof marked !== "undefined" && typeof DOMPurify !== "undefined"
+                ? DOMPurify.sanitize(marked.parse(dados.text || ""))
+                : escapeHtml(dados.text || "");
+        } else {
+            texto.textContent = dados.text || "";
+        }
 
         div.appendChild(nome);
         div.appendChild(document.createElement("br"));
@@ -368,540 +376,155 @@ function togglePublicRoom() {
 // ENVIAR MENSAGEM
 // ==========================================
 
-
-// ==========================================
-// ENVIAR MENSAGEM
-// ==========================================
-
 async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const chatbox = document.getElementById("chatbox");
+    const fileInput = document.getElementById("fileInput");
 
-    console.log("=================================");
-    console.log("SEND MESSAGE FOI CHAMADO");
-    console.log("=================================");
+    if (!input || !chatbox) return;
 
+    const pergunta = input.value.trim();
+    const arquivo = fileInput?.files?.[0] || null;
 
-    const input =
-        document.getElementById("userInput");
-
-    const chatbox =
-        document.getElementById("chatbox");
-
-    const fileInput =
-        document.getElementById("fileInput");
-
-
-    console.log("input:", input);
-    console.log("fileInput:", fileInput);
-
-
-    if (!input) {
-
-        console.error(
-            "ERRO: elemento #userInput não encontrado."
-        );
-
+    if (!pergunta && !arquivo) {
+        showError("Digite uma mensagem ou selecione uma foto/arquivo.");
         return;
     }
 
-
-    if (!chatbox) {
-
-        console.error(
-            "ERRO: elemento #chatbox não encontrado."
-        );
-
+    if (isPublicRoom) {
+        if (arquivo) {
+            showError("O envio de arquivos está disponível no chat individual.");
+            return;
+        }
+        if (!socket || !socket.connected) {
+            showError("Conexão perdida. Aguarde e tente novamente.");
+            return;
+        }
+        socket.emit("novaMensagem", { text: pergunta });
+        input.value = "";
+        input.focus();
         return;
     }
+    
+    // Limpa a prévia assim que o envio começa
+    fileInput.value = "";
 
-
-    // PEGAR A PERGUNTA
-
-    const pergunta =
-        input.value.trim();
-
-
-    console.log(
-        "PERGUNTA CAPTURADA:",
-        JSON.stringify(pergunta)
-    );
-
-
-    // PEGAR ARQUIVO
-
-    let arquivo = null;
-
-
-    if (
-        fileInput &&
-        fileInput.files &&
-        fileInput.files.length > 0
-    ) {
-
-        arquivo =
-            fileInput.files[0];
-
+    const imagePreview = document.getElementById("imagePreview");
+    if (imagePreview) {
+        imagePreview.innerHTML = "";
     }
+    
+    const welcome = document.getElementById("welcome-msg");
+    if (welcome) welcome.remove();
 
+    const userDiv = document.createElement("div");
+    userDiv.className = "message user";
+    const userLabel = document.createElement("b");
+    userLabel.textContent = "Você:";
+    userDiv.appendChild(userLabel);
 
-    console.log(
-        "ARQUIVO:",
-        arquivo
-            ? arquivo.name
-            : "Nenhum arquivo"
-    );
-
-
-    // ================================
-    // VERIFICAR PERGUNTA
-    // ================================
-
-if (isPublicRoom) {
-    if (!pergunta) {
-        showError("Digite uma mensagem.");
-        return;
+    if (pergunta) {
+        const messageText = document.createElement("div");
+        messageText.textContent = pergunta;
+        userDiv.appendChild(messageText);
     }
 
     if (arquivo) {
-        showError(
-            "O envio de documentos está disponível no chat individual."
-        );
-        return;
+        const attachment = document.createElement("div");
+        attachment.className = "message-attachment";
+        attachment.textContent = `📎 ${arquivo.name}`;
+        userDiv.appendChild(attachment);
+
+        if (arquivo.type.startsWith("image/")) {
+            const imageUrl = URL.createObjectURL(arquivo);
+            const preview = document.createElement("img");
+            preview.src = imageUrl;
+            preview.alt = "Imagem enviada";
+            preview.className = "sent-image-preview";
+            preview.onload = () => URL.revokeObjectURL(imageUrl);
+            userDiv.appendChild(preview);
+        }
     }
 
-    if (!socket || !socket.connected) {
-        showError(
-            "Conexão perdida. Aguarde e tente novamente."
-        );
-        return;
-    }
-
-    socket.emit("novaMensagem", {
-        text: pergunta
-    });
-
+    chatbox.appendChild(userDiv);
     input.value = "";
-    input.focus();
-
-    return;
-}
-
-    if (!pergunta) {
-
-        console.log(
-            "A pergunta está vazia."
-        );
-
-        showError(
-            "Digite uma pergunta."
-        );
-
-        return;
-    }
-
-
-    // ================================
-    // REMOVER MENSAGEM DE BOAS-VINDAS
-    // ================================
-
-    const welcome =
-        document.getElementById(
-            "welcome-msg"
-        );
-
-
-    if (welcome) {
-
-        welcome.remove();
-
-    }
-
-
-    // ================================
-    // MOSTRAR PERGUNTA DO USUÁRIO
-    // ================================
-
-    const userDiv =
-        document.createElement("div");
-
-
-    userDiv.className =
-        "message user";
-
-
-    userDiv.innerHTML =
-        `<b>Você:</b><br>
-        ${escapeHtml(pergunta)}`;
-
-
-    if (arquivo) {
-
-        userDiv.innerHTML +=
-            `<br>
-            <small>
-                📎 ${escapeHtml(arquivo.name)}
-            </small>`;
-
-    }
-
-
-    chatbox.appendChild(
-        userDiv
-    );
-
-
-    // LIMPAR INPUT
-
-    input.value = "";
-
-
     showTyping();
 
-
     try {
-
         let response;
 
-
-        // ==================================================
-        // PDF / TXT
-        // ==================================================
-
         if (arquivo) {
+            const formData = new FormData();
+            formData.append("documento", arquivo);
+            formData.append("pergunta", pergunta);
 
-            console.log(
-                "================================="
-            );
-
-            console.log(
-                "ENVIANDO DOCUMENTO"
-            );
-
-            console.log(
-                "================================="
-            );
-
-
-            const formData =
-                new FormData();
-
-
-            formData.append(
-                "documento",
-                arquivo
-            );
-
-
-            formData.append(
-                "pergunta",
-                pergunta
-            );
-
-
-            console.log(
-                "Arquivo enviado:",
-                arquivo.name
-            );
-
-
-            console.log(
-                "Pergunta enviada:",
-                pergunta
-            );
-
-
-            response =
-                await fetch(
-                    "/api/perguntar-documento",
-                    {
-
-                        method: "POST",
-
-                        headers: {
-
-                            Authorization:
-                                "Bearer " +
-                                localStorage.getItem(
-                                    "token"
-                                )
-
-                        },
-
-                        body: formData
-
-                    }
-                );
-
+            response = await fetch("/api/perguntar-documento", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token") || ""}`
+                },
+                body: formData
+            });
+        } else {
+            response = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token") || ""}`
+                },
+                body: JSON.stringify({
+                    message: pergunta,
+                    sessionId: currentSessionId
+                })
+            });
         }
 
-
-        // ==================================================
-        // CHAT NORMAL
-        // ==================================================
-
-        else {
-
-            console.log(
-                "Enviando mensagem normal..."
-            );
-
-
-            response =
-                await fetch(
-                    "/chat",
-                    {
-
-                        method: "POST",
-
-                        headers: {
-
-                            "Content-Type":
-                                "application/json",
-
-                            Authorization:
-                                "Bearer " +
-                                localStorage.getItem(
-                                    "token"
-                                )
-
-                        },
-
-                        body:
-                            JSON.stringify({
-
-                                message:
-                                    pergunta,
-
-                                sessionId:
-                                    currentSessionId
-
-                            })
-
-                    }
-                );
-
-        }
-
-
-        console.log(
-            "STATUS DO SERVIDOR:",
-            response.status
-        );
-
-
-        // Tentar ler resposta
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            "RESPOSTA DO SERVIDOR:",
-            data
-        );
-
-
+        const data = await response.json().catch(() => ({}));
         hideTyping();
 
-
-        // ================================
-        // TOKEN EXPIRADO
-        // ================================
-
-        if (
-            response.status === 401
-        ) {
-
+        if (response.status === 401) {
             logout();
-
             return;
-
         }
 
-
-        // ==================================================
-        // RESPOSTA DO DOCUMENTO
-        // ==================================================
-
-        if (arquivo) {
-
-            if (
-                response.ok &&
-                data.resposta
-            ) {
-
-                const botDiv =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                botDiv.className =
-                    "message bot";
-
-
-                botDiv.innerHTML =
-                    `<b>NathanBot:</b><br>
-                    ${escapeHtml(
-                        data.resposta
-                    )}`;
-
-
-                chatbox.appendChild(
-                    botDiv
-                );
-
-
-                console.log(
-                    "Documento respondido com sucesso."
-                );
-
-
-            } else {
-
-                console.error(
-                    "Erro retornado pelo servidor:",
-                    data
-                );
-
-
-                showError(
-                    data.erro ||
-                    data.error ||
-                    "Erro ao analisar o documento."
-                );
-
-            }
-
+        const resposta = arquivo ? data.resposta : data.reply;
+        if (!response.ok || !resposta) {
+            showError(data.erro || data.error || "Não foi possível obter uma resposta.");
+            return;
         }
 
+        const botDiv = document.createElement("div");
+        botDiv.className = "message bot";
+        
+        // MODIFICAÇÃO: Processa o Markdown da resposta do bot de forma segura
+        const formattedText = typeof marked !== "undefined" && typeof DOMPurify !== "undefined"
+            ? DOMPurify.sanitize(marked.parse(resposta))
+            : escapeHtml(resposta);
 
-        // ==================================================
-        // RESPOSTA NORMAL
-        // ==================================================
+        botDiv.innerHTML = `<b>NathanBot:</b><div class="message-body">${formattedText}</div>`;
+        chatbox.appendChild(botDiv);
 
-        else {
-
-            if (
-                response.ok &&
-                data.reply
-            ) {
-
-                const botDiv =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                botDiv.className =
-                    "message bot";
-
-
-                botDiv.innerHTML =
-                    `<b>NathanBot:</b><br>
-                    ${escapeHtml(
-                        data.reply
-                    )}`;
-
-
-                chatbox.appendChild(
-                    botDiv
-                );
-
-
-                loadAllChats();
-
-
-            } else {
-
-                showError(
-                    data.error ||
-                    data.erro ||
-                    "Erro ao gerar resposta."
-                );
-
-            }
-
-        }
-
-
-        // ================================
-        // REMOVER ARQUIVO
-        // ================================
-
-        if (arquivo) {
-
-            removeSelectedFile();
-
-        }
-
-
+        if (!arquivo) loadAllChats();
+        removeSelectedFile();
     } catch (error) {
-
-        console.error(
-            "ERRO AO ENVIAR:",
-            error
-        );
-
-
+        console.error("Erro ao enviar mensagem/arquivo:", error);
         hideTyping();
-
-
-        showError(
-            "Não foi possível conectar ao servidor."
-        );
-
+        showError("Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.");
     }
 
-
-    chatbox.scrollTop =
-        chatbox.scrollHeight;
-
+    chatbox.scrollTop = chatbox.scrollHeight;
 }
-
-
-
 
 // ==========================================
 // REMOVER ARQUIVO SELECIONADO
 // ==========================================
 
 function removeSelectedFile() {
-
-    const fileInput =
-        document.getElementById("fileInput");
-
-
-    const selectedFile =
-        document.getElementById("selectedFile");
-
-
-    const selectedFileName =
-        document.getElementById("selectedFileName");
-
-
-    if (fileInput) {
-
-        fileInput.value = "";
-
-    }
-
-
-    if (selectedFileName) {
-
-        selectedFileName.textContent = "";
-
-    }
-
-
-    if (selectedFile) {
-
-        selectedFile.style.display =
-            "none";
-
-    }
-
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("imagePreview");
+    if (fileInput) fileInput.value = "";
+    if (preview) preview.innerHTML = "";
 }
-
 
 // ==========================================
 // ESCAPAR HTML
@@ -1150,16 +773,15 @@ async function loadSpecificChat(
                         : "message bot";
 
 
-                const nome =
-                    msg.role === "user"
-                        ? "Você"
-                        : "Gemini";
-
-
-                div.innerHTML =
-                    `<b>${nome}:</b><br>
-                    ${escapeHtml(msg.text)}`;
-
+                // MODIFICAÇÃO: Renderização correta de Markdown ao carregar mensagens antigas do histórico
+                if (msg.role === "user") {
+                    div.innerHTML = `<b>Você:</b><div>${escapeHtml(msg.text)}</div>`;
+                } else {
+                    const formattedText = typeof marked !== "undefined" && typeof DOMPurify !== "undefined"
+                        ? DOMPurify.sanitize(marked.parse(msg.text || ""))
+                        : escapeHtml(msg.text || "");
+                    div.innerHTML = `<b>NathanBot:</b><div class="message-body">${formattedText}</div>`;
+                }
 
                 chatbox.appendChild(
                     div
@@ -1339,86 +961,57 @@ console.log("=================================");
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", function () {
-
-    const input =
-        document.getElementById("userInput");
-
-    const fileInput =
-        document.getElementById("fileInput");
-
-
-    console.log(
-        "userInput encontrado:",
-        !!input
-    );
-
-
-    console.log(
-        "fileInput encontrado:",
-        !!fileInput
-    );
-
-
-    if (input) {
-
-        input.addEventListener(
-            "input",
-            function () {
-
-                console.log(
-                    "Texto digitado:",
-                    this.value
-                );
-
-            }
-        );
-
-    }
-
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("imagePreview");
+    const input = document.getElementById("userInput");
 
     if (fileInput) {
+        fileInput.addEventListener("change", function () {
+            if (!preview) return;
+            preview.innerHTML = "";
+            const file = this.files?.[0];
+            if (!file) return;
 
-        fileInput.addEventListener(
-            "change",
-            function () {
+            const row = document.createElement("div");
+            row.className = "selected-upload";
 
-                console.log(
-                    "Arquivo selecionado:",
-                    this.files[0]
-                        ? this.files[0].name
-                        : "nenhum"
-                );
-
-
-                const selectedFile =
-                    document.getElementById(
-                        "selectedFile"
-                    );
-
-
-                const selectedFileName =
-                    document.getElementById(
-                        "selectedFileName"
-                    );
-
-
-                if (
-                    this.files.length > 0
-                ) {
-
-                    selectedFileName.textContent =
-                        "📄 " +
-                        this.files[0].name;
-
-
-                    selectedFile.style.display =
-                        "flex";
-
-                }
-
+            if (file.type.startsWith("image/")) {
+                const img = document.createElement("img");
+                img.src = URL.createObjectURL(file);
+                img.alt = "Prévia da imagem selecionada";
+                img.className = "upload-thumbnail";
+                row.appendChild(img);
+            } else {
+                const icon = document.createElement("span");
+                icon.className = "upload-file-icon";
+                icon.textContent = file.type === "application/pdf" ? "📕" : "📄";
+                row.appendChild(icon);
             }
-        );
 
+            const name = document.createElement("span");
+            name.className = "upload-file-name";
+            name.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            row.appendChild(name);
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "remove-upload-button";
+            removeButton.textContent = "×";
+            removeButton.title = "Remover arquivo";
+            removeButton.setAttribute("aria-label", "Remover arquivo selecionado");
+            removeButton.addEventListener("click", removeSelectedFile);
+            row.appendChild(removeButton);
+
+            preview.appendChild(row);
+        });
     }
 
+    if (input) {
+        input.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    }
 });
