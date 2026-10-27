@@ -1,123 +1,232 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Entrar | NathanBot</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #fff;
-      padding: 20px;
-    }
-    .card {
-      width: 100%;
-      max-width: 420px;
-      padding: 35px;
-      border-radius: 22px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: 0 25px 70px rgba(0,0,0,.35);
-      backdrop-filter: blur(15px);
-    }
-    .logo {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 18px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      background: #fff;
-      color: #111827;
-      font-size: 28px;
-      font-weight: 800;
-    }
-    h1 { text-align: center; margin: 0 0 8px; }
-    .subtitle { text-align: center; color: #cbd5e1; margin-bottom: 28px; }
-    label { display: block; margin: 14px 0 7px; color: #e2e8f0; }
-    input {
-      width: 100%; padding: 14px 15px; border-radius: 12px;
-      border: 1px solid #475569; background: #0f172a; color: #fff; outline: none;
-    }
-    input:focus { border-color: #94a3b8; }
-    button {
-      width: 100%; margin-top: 22px; padding: 14px; border: 0;
-      border-radius: 12px; background: #fff; color: #0f172a;
-      font-weight: 700; cursor: pointer; font-size: 15px;
-    }
-    button:disabled { opacity: .6; cursor: wait; }
-    .message { min-height: 22px; margin-top: 15px; text-align: center; font-size: 14px; }
-    .link { text-align: center; margin-top: 22px; color: #cbd5e1; }
-    a { color: #fff; font-weight: 700; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NathanBot</title>
+
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <main class="card">
-    <div class="logo">N</div>
-    <h1>Bem-vindo ao NathanBot</h1>
-    <div class="subtitle">Entre na sua conta para continuar</div>
 
-    <form id="loginForm">
-      <label for="email">E-mail</label>
-      <input id="email" type="email" autocomplete="email" required placeholder="seu@email.com">
+<div class="chat-container">
 
-      <label for="password">Senha</label>
-      <input id="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
+    <!-- OVERLAY MOBILE -->
+    <div
+        class="modal-overlay"
+        id="modalOverlay"
+        onclick="toggleSidebar()">
+    </div>
 
-      <button id="loginButton" type="submit">Entrar</button>
-      <div class="message" id="message"></div>
-    </form>
 
-    <div class="link">Ainda não possui conta? <a href="/cadastro.html">Criar conta</a></div>
-  </main>
+    <!-- SIDEBAR -->
+    <div
+        class="sidebar"
+        id="sidebarMenu">
 
-  <script>
-    if (localStorage.getItem("token")) {
-      window.location.href = "/";
-    }
+        <div class="sidebar-header-container">
 
-    document.getElementById("loginForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
+            <button
+                class="btn-new-chat"
+                onclick="startNewChat()">
+                + Nova Conversa
+            </button>
 
-      const button = document.getElementById("loginButton");
-      const message = document.getElementById("message");
+            <button
+                class="btn-delete-history"
+                onclick="clearCurrentHistory()">
+                Apagar Conversa Atual
+            </button>
 
-      button.disabled = true;
-      message.textContent = "Entrando...";
+        </div>
 
-      try {
-        const response = await fetch("/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-          })
-        });
+        <div
+            class="sidebar-content"
+            id="historyContent">
+        </div>
 
-        const data = await response.json();
+    </div>
 
-        if (!response.ok) {
-          throw new Error(data.error || "Não foi possível entrar");
-        }
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("sessionId", crypto.randomUUID());
+    <!-- CHAT PRINCIPAL -->
+    <div class="main-chat">
 
-        window.location.href = "/";
-      } catch (error) {
-        message.textContent = error.message;
-        button.disabled = false;
-      }
-    });
-  </script>
+        <div class="chat-header">
+
+            <button
+                class="btn-menu-mobile"
+                onclick="toggleSidebar()">
+                ☰
+            </button>
+
+
+            <div>
+
+                <h3>NathanBot</h3>
+
+                <span id="chat-status">
+                    Nova sessão
+                </span>
+
+            </div>
+
+
+            <!-- USUÁRIO -->
+            <div class="user-area">
+
+    <button
+        class="user-avatar"
+        id="userAvatar"
+        onclick="toggleUserMenu()"
+        title="Minha conta">
+        U
+    </button>
+
+    <div
+        class="user-menu"
+        id="userMenu">
+
+        <div class="user-menu-info">
+
+            <strong id="userName">
+                Usuário
+            </strong>
+
+            <span id="userEmail">
+                email@email.com
+            </span>
+
+        </div>
+
+        <div class="user-menu-divider"></div>
+
+        <button
+            class="logout-button"
+            onclick="logout()">
+
+            <span>↪</span>
+            Sair da conta
+
+        </button>
+
+    </div>
+
+</div>
+
+        </div>
+
+
+        
+
+        <!-- MENSAGENS -->
+
+        <div
+            class="chat-messages"
+            id="chatbox">
+        </div>
+
+<div
+            class="typing-indicator"
+            id="typingBubble"
+            style="display:none;">
+
+            <span></span>
+            <span></span>
+            <span></span>
+
+        </div>
+        <!-- INPUT -->
+
+        <!-- INPUT DO CHAT -->
+<div class="chat-input-area">
+
+    <!-- PRÉVIA DA IMAGEM -->
+    <div
+        id="imagePreview"
+        class="image-preview">
+    </div>
+
+    <div class="chat-input-row">
+
+        <!-- BOTÃO PARA ESCOLHER IMAGEM -->
+       <label
+    for="fileInput"
+    class="image-button"
+    title="Enviar imagem">
+
+    <svg
+        width="21"
+        height="21"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Moldura da imagem -->
+        <rect
+            x="3"
+            y="4"
+            width="18"
+            height="16"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="1.7"
+        />
+
+        <!-- Sol -->
+        <circle
+            cx="8.5"
+            cy="9"
+            r="1.5"
+            fill="currentColor"
+        />
+
+        <!-- Montanha -->
+        <path
+            d="M4.5 17L9.5 11.5L13 15L15.5 12.5L19.5 17"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        />
+
+    </svg>
+
+</label>
+
+        <input
+            type="file"
+            id="fileInput"
+            accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.txt"
+            hidden
+        >
+
+        <!-- CAMPO DE TEXTO -->
+        <input
+    type="text"
+    id="userInput"
+    placeholder="Digite sua mensagem aqui..."
+    autocomplete="off"
+>
+
+        <!-- ENVIAR -->
+        <button onclick="sendMessage()">
+            Enviar
+        </button>
+
+    </div>
+
+</div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+
 </body>
 </html>
