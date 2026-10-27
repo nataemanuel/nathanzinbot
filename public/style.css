@@ -1156,3 +1156,222 @@ body {
         height: 42px;
     }
 }
+
+/* =========================================================
+   ANEXOS: IMAGENS, PDF E TXT
+========================================================= */
+.chat-input-area {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.chat-input-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+}
+
+.image-button {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: #202124;
+    border: 1px solid #3c4043;
+    color: #aeb4bd;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.image-button:hover {
+    background: #292a2d;
+    color: #8ab4f8;
+    border-color: #5875a5;
+}
+
+.image-button:focus-within {
+    outline: 2px solid #8ab4f8;
+    outline-offset: 2px;
+}
+
+.image-preview:empty {
+    display: none;
+}
+
+.image-preview {
+    display: flex;
+    width: 100%;
+}
+
+.selected-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    padding: 8px 10px;
+    border: 1px solid rgba(138, 180, 248, .25);
+    border-radius: 13px;
+    background: rgba(138, 180, 248, .08);
+    color: #e8eaed;
+}
+
+.upload-thumbnail {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    object-fit: cover;
+    border-radius: 9px;
+}
+
+.upload-file-icon {
+    font-size: 25px;
+    flex: 0 0 auto;
+}
+
+.upload-file-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .85rem;
+}
+
+.remove-upload-button {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,.08);
+    color: #f1f3f4;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.remove-upload-button:hover {
+    background: rgba(255,80,90,.2);
+}
+
+.message-attachment {
+    margin-top: 6px;
+    font-size: .85rem;
+    opacity: .9;
+    overflow-wrap: anywhere;
+}
+
+.sent-image-preview {
+    display: block;
+    max-width: min(260px, 100%);
+    max-height: 240px;
+    margin-top: 8px;
+    border-radius: 12px;
+    object-fit: contain;
+}
+
+@media (max-width: 600px) {
+    .chat-input-row { gap: 7px; }
+    .image-button { width: 43px; height: 43px; flex-basis: 43px; }
+    .chat-input-area > input[type="text"] { height: 43px; padding: 0 12px; }
+    .chat-input-area > button { height: 43px; min-width: 65px; padding: 0 12px; }
+}
+
+/* Os controles ficam dentro de .chat-input-row no HTML */
+.chat-input-row > input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    background: #202124;
+    border: 1px solid #3c4043;
+    color: #fff;
+    padding: 0 18px;
+    border-radius: 24px;
+    outline: none;
+    font-size: .95rem;
+}
+
+.chat-input-row > input[type="text"]::placeholder { color: #85878b; }
+.chat-input-row > input[type="text"]:focus {
+    border-color: #6d9fe9;
+    box-shadow: 0 0 0 3px rgba(138,180,248,.11);
+}
+
+.chat-input-row > button {
+    height: 48px;
+    min-width: 100px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 24px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: .9rem;
+    background: linear-gradient(135deg, #8ab4f8, #6ea0f5);
+    color: #07101c;
+}
+
+.chat-input-row > button:hover { filter: brightness(1.08); }
+
+@media (max-width: 600px) {
+    .chat-input-row > input[type="text"] { height: 43px; padding: 0 12px; font-size: .88rem; }
+    .chat-input-row > button { height: 43px; min-width: 65px; padding: 0 12px; font-size: .82rem; }
+}
+/* =========================================================
+   ESTILIZAÇÃO DE MARKDOWN DENTRO DAS MENSAGENS
+========================================================= */
+
+/* Espaçamento dos parágrafos */
+.message-body p {
+    margin-bottom: 8px;
+}
+
+.message-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* Espaçamento e formatação de listas */
+.message-body ul, 
+.message-body ol {
+    margin: 8px 0 8px 20px;
+    padding-left: 10px;
+}
+
+.message-body li {
+    margin-bottom: 4px;
+}
+
+/* Blocos de código */
+.message-body pre {
+    background: #18191c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.message-body code {
+    font-family: "Fira Code", Consolas, Monaco, monospace;
+    font-size: 0.88rem;
+}
+
+/* Código em linha (inline code) */
+.message-body :not(pre) > code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+/* Títulos caso a IA gere h1, h2, h3... */
+.message-body h1, 
+.message-body h2, 
+.message-body h3 {
+    margin: 12px 0 6px 0;
+    font-weight: 600;
+}
