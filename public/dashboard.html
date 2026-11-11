@@ -1,0 +1,428 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard Administrativo | NathanBot</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #10131c;
+            color: #fff;
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        header h1 {
+            font-size: 25px;
+        }
+
+        header p {
+            color: #9299aa;
+            margin-top: 7px;
+        }
+
+        button {
+            background: #6255e7;
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #1b2030;
+            border: 1px solid #2b3245;
+            padding: 25px;
+            border-radius: 14px;
+        }
+
+        .card p {
+            color: #9299aa;
+            margin-bottom: 15px;
+        }
+
+        .card h2 {
+            font-size: 30px;
+            color: #8b80ff;
+        }
+
+        .grafico {
+            background: #1b2030;
+            border: 1px solid #2b3245;
+            padding: 25px;
+            border-radius: 14px;
+        }
+
+        .grafico h2 {
+            margin-bottom: 25px;
+            font-size: 19px;
+        }
+
+        .grafico-container {
+            position: relative;
+            height: 350px;
+        }
+
+        #status {
+            color: #9299aa;
+            margin-top: 18px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 18px;
+            }
+
+            .grafico-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>Dashboard Administrativo</h1>
+            <p>Monitoramento de consumo do NathanBot</p>
+        </div>
+
+        <button onclick="window.location.href='/'">
+            Voltar ao início
+        </button>
+    </header>
+
+    <main>
+
+        <section class="cards">
+
+            <div class="card">
+                <p>Total de tokens utilizados</p>
+                <h2 id="totalTokens">Carregando...</h2>
+            </div>
+
+            <div class="card">
+                <p>Consumo de hoje</p>
+                <h2 id="tokensHoje">Carregando...</h2>
+            </div>
+
+            <div class="card">
+                <p>Status do monitoramento</p>
+                <h2 id="statusConexao">Conectando...</h2>
+            </div>
+
+        </section>
+
+        <section class="grafico">
+
+            <h2>Consumo de tokens por dia</h2>
+
+            <div class="grafico-container">
+                <canvas id="graficoTokens"></canvas>
+            </div>
+
+            <p id="status">Carregando dados...</p>
+
+        </section>
+
+    </main>
+
+    <script>
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            window.location.href = "/login.html";
+            throw new Error("Usuário não autenticado.");
+        }
+
+        const hoje = new Date().toLocaleDateString("en-CA");
+
+        let grafico;
+        let totalGeral = 0;
+        let totalHoje = 0;
+
+        function formatarNumero(numero) {
+            return Number(numero || 0).toLocaleString("pt-BR");
+        }
+
+        function obterData(item) {
+            const valor = item.data ?? item._id ?? item.dia;
+
+            if (!valor) return null;
+
+            if (valor instanceof Date) {
+                return valor.toISOString().slice(0, 10);
+            }
+
+            const texto = String(valor);
+
+            if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+                return texto.slice(0, 10);
+            }
+
+            return null;
+        }
+
+        function obterTokens(item) {
+            return Number(
+                item.totalTokens ??
+                item.tokensGastos ??
+                item.total ??
+                item.tokens ??
+                0
+            ) || 0;
+        }
+
+        async function carregarAnalytics() {
+
+            try {
+
+                const resposta = await fetch("/api/analytics/tokens", {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (resposta.status === 401) {
+                    localStorage.removeItem("token");
+                    window.location.href = "/login.html";
+                    return;
+                }
+
+                if (resposta.status === 403) {
+                    document.body.innerHTML =
+                        "<h2>Acesso restrito: somente administradores podem acessar este dashboard.</h2>";
+                    return;
+                }
+
+                if (!resposta.ok) {
+                    const erro = await resposta.text();
+                    throw new Error(`Erro ${resposta.status}: ${erro}`);
+                }
+
+                const resultado = await resposta.json();
+
+                console.log("Dados recebidos da API:", resultado);
+
+                const dadosBrutos = resultado.dados || resultado.resultados || [];
+
+                const dados = dadosBrutos
+                    .map(item => ({
+                        data: obterData(item),
+                        totalTokens: obterTokens(item)
+                    }))
+                    .filter(item => item.data !== null);
+
+                totalGeral = Number(resultado.totalGeral ?? resultado.totalTokens ?? 0);
+
+                document.getElementById("totalTokens").textContent =
+                    formatarNumero(totalGeral);
+
+                const dadosHoje = dados.find(item => item.data === hoje);
+
+                totalHoje = dadosHoje?.totalTokens || 0;
+
+                document.getElementById("tokensHoje").textContent =
+                    formatarNumero(totalHoje);
+
+                atualizarGrafico(dados);
+
+                document.getElementById("status").textContent =
+                    "Dados atualizados com sucesso.";
+
+            } catch (error) {
+
+                console.error("Erro ao carregar analytics:", error);
+
+                document.getElementById("status").textContent =
+                    "Não foi possível carregar os dados. Verifique o console.";
+
+            }
+        }
+
+        function atualizarGrafico(dados) {
+
+            const contexto = document
+                .getElementById("graficoTokens")
+                .getContext("2d");
+
+            if (grafico) {
+                grafico.destroy();
+            }
+
+            grafico = new Chart(contexto, {
+
+                type: "line",
+
+                data: {
+                    labels: dados.map(item => {
+
+                        const partes = item.data.split("-");
+
+                        return partes.length === 3
+                            ? `${partes[2]}/${partes[1]}/${partes[0]}`
+                            : item.data;
+
+                    }),
+
+                    datasets: [{
+                        label: "Tokens utilizados",
+                        data: dados.map(item => item.totalTokens),
+                        borderColor: "#8b80ff",
+                        backgroundColor: "rgba(139, 128, 255, 0.15)",
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#fff"
+                            }
+                        }
+                    },
+
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: "#9299aa"
+                            },
+                            grid: {
+                                color: "#303648"
+                            }
+                        },
+
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: "#9299aa"
+                            },
+                            grid: {
+                                color: "#303648"
+                            }
+                        }
+                    }
+                }
+
+            });
+
+        }
+
+        // Conexão Socket.IO autenticada
+        const socket = io({
+            auth: {
+                token: token
+            }
+        });
+
+        socket.on("connect", () => {
+
+            document.getElementById("statusConexao").textContent =
+                "Online";
+
+        });
+
+        socket.on("disconnect", () => {
+
+            document.getElementById("statusConexao").textContent =
+                "Offline";
+
+        });
+
+        socket.on("connect_error", (error) => {
+
+            console.error("Erro Socket.IO:", error.message);
+
+            document.getElementById("statusConexao").textContent =
+                "Erro";
+
+        });
+
+        // Atualização em tempo real
+        socket.on("novoGastoDeToken", (quantidade) => {
+
+            const quantidadeTokens = Number(quantidade) || 0;
+
+            if (!quantidadeTokens) return;
+
+            totalGeral += quantidadeTokens;
+            totalHoje += quantidadeTokens;
+
+            document.getElementById("totalTokens").textContent =
+                formatarNumero(totalGeral);
+
+            document.getElementById("tokensHoje").textContent =
+                formatarNumero(totalHoje);
+
+            if (grafico) {
+
+                const partes = hoje.split("-");
+                const dataFormatada =
+                    `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+                const labels = grafico.data.labels;
+
+                let indice = labels.indexOf(dataFormatada);
+
+                if (indice === -1) {
+
+                    labels.push(dataFormatada);
+
+                    grafico.data.datasets[0].data.push(quantidadeTokens);
+
+                } else {
+
+                    grafico.data.datasets[0].data[indice] += quantidadeTokens;
+
+                }
+
+                grafico.update();
+
+            }
+
+        });
+
+        carregarAnalytics();
+
+    </script>
+
+</body>
+</html>
