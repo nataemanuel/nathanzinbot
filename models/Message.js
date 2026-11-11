@@ -1,6 +1,7 @@
+
 const mongoose = require("mongoose");
 
-// Sub-schema para a imagem para evitar problemas de _id automático e campos omitidos
+// Sub-schema para imagem
 const ImageSchema = new mongoose.Schema({
     data: {
         type: String,
@@ -36,13 +37,16 @@ const MessageSchema = new mongoose.Schema({
         default: ""
     },
 
-    // ==========================================
     // IMAGEM
-    // ==========================================
-
     image: {
         type: ImageSchema,
         default: () => ({ data: null, mimeType: null })
+    },
+
+    // CONTROLE DE TOKENS - SPRINT 8
+    tokensGastos: {
+        type: Number,
+        default: 0
     }
 
 }, {
